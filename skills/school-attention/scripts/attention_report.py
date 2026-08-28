@@ -419,7 +419,10 @@ def main():
         for s in output["schools"]
     ]
     chart_path = generate_radar(chart_input)
-    output["chart_path"] = chart_path  # None if matplotlib unavailable
+    # Signal success without exposing the path (prevents agent from pre-emptively embedding)
+    output["chart_generated"] = chart_path is not None
+    if chart_path:
+        print("[chart] generated successfully", file=sys.stderr)
 
     print(json.dumps(output, indent=2))
 
