@@ -14,7 +14,7 @@ description: Regional school rollup — flags schools by risk, compliance, staff
 ### Phase 1 — ServiceNow data (FETCH then DISPLAY immediately)
 
 ```bash
-PYTHONPATH=/skills/servicenow/scripts python3 /skills/school-attention/scripts/attention_report.py \
+PYTHONPATH=/skills/servicenow/scripts:/skills/school-360/scripts python3 /skills/school-attention/scripts/attention_report.py \
   --instance-id <instance-id> --manager "<manager-name>" --skip-notes --skip-email
 ```
 
@@ -137,3 +137,19 @@ Embed the chart image EXACTLY ONCE. No other phase displays the chart.
 7. Instance ID: always use the active session value from the system prompt.
 8. Chart: `attention_report.py` generates `/tmp/school-attention-radar.png`. Display it ONLY in Phase 5 — copy to host, embed once. Never earlier, never later, never twice.
 9. Notes/email use the M365 scripts directly — NEVER re-run attention_report.py for enrichment.
+
+## FAIL-FAST — MANDATORY
+
+**If `attention_report.py` fails (exit code ≠ 0, `success: false`, or subprocess errors), you MUST:**
+
+1. **STOP IMMEDIATELY.** Do not attempt workarounds, fallbacks, or direct script calls.
+2. **Show the user the exact error** from the JSON output or stderr — nothing else.
+3. **Do NOT:**
+   - Call `school_data.py` directly as a workaround
+   - Read or edit the script source to debug
+   - Probe ServiceNow tables to investigate
+   - Narrate what went wrong or speculate about causes
+   - Make up table names or query random endpoints
+4. **Say this:** "The attention report failed with: `<exact error>`. This needs a code fix — not a workaround."
+
+**Why:** This script is used in live demos. A workaround that takes 2+ minutes of visible debugging is worse than a clean failure message. If the script is broken, it needs a proper fix in a separate task — not improvised surgery mid-demo.

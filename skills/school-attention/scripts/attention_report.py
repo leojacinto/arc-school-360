@@ -18,6 +18,10 @@ import sys
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Direct import paths for school-360 and servicenow scripts
+sys.path.insert(0, "/skills/servicenow/scripts")
+sys.path.insert(0, "/skills/school-360/scripts")
+
 # ============================================================
 # CHART GENERATION — deterministic radar from score_school() output
 # ============================================================
@@ -88,13 +92,12 @@ def generate_radar(schools_with_scores, output_dir="/tmp"):
     return output_path
 
 # ============================================================
-# CONSTANTS — resolve paths that work in both /skills/ overlay and /sandbox/skills/
+# CONSTANTS — resolve paths relative to /skills/
 # ============================================================
 def _resolve(relative):
-    """Find script at /skills/... or /sandbox/skills/... (whichever exists)."""
+    """Find script at /skills/... (skill overlay)."""
     candidates = [
         f"/skills/{relative}",
-        f"/sandbox/skills/{relative}",
     ]
     for c in candidates:
         if os.path.isfile(c):
@@ -117,7 +120,7 @@ def run_script(cmd, timeout=60, pythonpath=None):
         if pythonpath:
             env["PYTHONPATH"] = pythonpath + ":" + env.get("PYTHONPATH", "")
         else:
-            env["PYTHONPATH"] = "/sandbox/skills/servicenow/scripts:" + env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = "/skills/servicenow/scripts:" + env.get("PYTHONPATH", "")
         result = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout, env=env
         )
@@ -138,13 +141,19 @@ def run_script(cmd, timeout=60, pythonpath=None):
 
 
 def fetch_region_data(instance_id, manager_name):
-    """Call school_data.py region --manager <name>."""
-    cmd = [
-        sys.executable, SCHOOL_DATA_SCRIPT,
-        "--instance-id", instance_id,
-        "region", "--manager", manager_name
-    ]
-    return run_script(cmd, timeout=60)
+    """Call school_data.fetch_region_data() directly via import."""
+    try:
+        from config import get_servicenow_config
+        from school_data import fetch_region_data as _fetch_region
+
+        config, err = get_servicenow_config(instance_id=instance_id)
+        if err:
+            return None, f"Config error: {err}"
+
+        result = _fetch_region(config, manager_name)
+        return result, None
+    except Exception as e:
+        return None, str(e)
 
 
 def fetch_emails(school_name=None):
@@ -154,7 +163,7 @@ def fetch_emails(school_name=None):
         cmd += ["--school", school_name]
     else:
         cmd += ["--all"]
-    return run_script(cmd, timeout=30, pythonpath="/sandbox/skills/microsoft365/scripts")
+    return run_script(cmd, timeout=30, pythonpath="/skills/microsoft365/scripts")
 
 
 def fetch_notes(school_name=None):
@@ -164,7 +173,7 @@ def fetch_notes(school_name=None):
         cmd += ["--school", school_name]
     else:
         cmd += ["--all"]
-    return run_script(cmd, timeout=30, pythonpath="/sandbox/skills/microsoft365/scripts")
+    return run_script(cmd, timeout=30, pythonpath="/skills/microsoft365/scripts")
 
 
 # ============================================================
@@ -261,9 +270,9 @@ def main():
         print(json.dumps(output, indent=2))
         sys.exit(1)
 
-    if not region_data.get("success"):
+    if not region_data.get("region"):
         output["success"] = False
-        output["errors"].append(f"region_data returned success=false")
+        output["errors"].append("region_data returned no region info")
         print(json.dumps(output, indent=2))
         sys.exit(1)
 
@@ -422,7 +431,7 @@ def main():
     # Signal success without exposing the path (prevents agent from pre-emptively embedding)
     output["chart_generated"] = chart_path is not None
     if chart_path:
-        print("[chart] generated successfully", file=sys.stderr)
+        print(f"[chart] saved to {chart_path}", file=sys.stderr)
 
     print(json.dumps(output, indent=2))
 
