@@ -178,7 +178,7 @@ CORROBORATING:
 • Survey 2025-T4: sentiment 3.8 (drop of 0.7)
 ```
 
-Also render a **diagram** (using the diagrams skill or matplotlib/networkx) showing the graph as connected nodes if the chain has 3+ records. Display inline.
+**Do NOT generate matplotlib/networkx PNGs for the evidence graph.** Use the ASCII box diagram above — it renders inline without crashes or alignment bugs.
 
 ## Analysis
 
@@ -186,19 +186,6 @@ After presenting the evidence chain, provide:
 1. **Root cause assessment** — what's actually broken (person, process, or resource)
 2. **Duration of impact** — how long has this been festering
 3. **Escalation recommendation** — who needs to act and by when
-
-## Visualization & Display
-
-When producing the evidence chain diagram:
-
-1. **Library**: Use `networkx` + `matplotlib` for the graph visualization
-2. **Node styling**: Colour nodes by record type — red for cases, amber for compliance, blue for initiatives, grey for surveys
-3. **Edge labels**: Show the relationship type on each edge ("links to", "case ref", "spawned by")
-4. **Render in sandbox**: Generate PNG at 150 DPI, tight layout
-5. **Copy to host workspace**: `cat /tmp/evidence-chain.png | ssh arc-host 'cat > "$ARC_HOST_HOME/<school-slug>-evidence.png"'`
-6. **Display inline**: Always show with `![Evidence Chain](/Users/leo.francia/<school-slug>-evidence.png)` — NEVER just give a file path
-7. **Auto-install**: If networkx not available, `pip install` silently without asking
-8. **Always render**: If the chain has 3+ nodes, ALWAYS produce the diagram in addition to the ASCII box representation
 
 ## Source Citation (Mandatory)
 
